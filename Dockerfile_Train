@@ -1,0 +1,23 @@
+FROM nvcr.io/nvidia/pytorch:24.03-py3
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    tzdata \
+    libgtk2.0-dev \
+    pkg-config \
+    x11-apps \
+    libgl1-mesa-glx \
+    python3-tk \
+    # add anything extra then do \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV DEBIAN_FRONTEND=
+
+WORKDIR /app
+
+COPY . /app
+
+RUN pip uninstall opencv-python
+RUN pip install opencv-python==4.5.4.60
