@@ -24,18 +24,18 @@
 <p>Clone the Repository: <code>git clone https://github.com/EthanStanks/FaceCraft</code></p>
 
 <h2 style="text-align: center;">🔨 Training with Docker 🔨</h2>
-<p>+ Build the docker image (takes 10 minutes) +</p>
-<code>docker build -f Dockerfile_Train -t facecraft-train:1.1 .</code>
-<p>+ Run the container +</p>
-<code>docker run --gpus all -it -d -e DISPLAY=$DISPLAY -p 6006:6006 -v ${PWD}:/app facecraft-train:1.1</code>
-<p>+ Open Visual Studio Code +</p>
-<p>+ (Optional) Install Python Extension +</p>
-<p>+ Attach Current Window to Container +</p>
-<code>Click the "Attach in Current Window" arrow next to "facecraft-train:1.1"</code>
-<p>+ Navigate to the app directory +</p>
-<code>cd ../app</code>
-<p>+ Run the Training Script +</p>
-<code>python Training/src/train.py</code>
+<p>Build the docker image (takes 10 minutes)</p>
+<p>+ <code>docker build -f Dockerfile_Train -t facecraft-train:1.1 .</code> +</p>
+<p>Run the container</p>
+<p>+ <code>docker run --gpus all -it -d -e DISPLAY=$DISPLAY -p 6006:6006 -v ${PWD}:/app facecraft-train:1.1</code> +</p>
+<p>Open Visual Studio Code</p>
+<p>(Optional) Install Python Extension</p>
+<p>Attach Current Window to Container</p>
+<p>+ <code>Click the "Attach in Current Window" arrow next to "facecraft-train:1.1"</code> +</p>
+<p>Navigate to the app directory</p>
+<p>+ <code>cd ../app</code> +</p>
+<p>Run the Training Script</p>
+<p>+ <code>python Training/src/train.py</code> +</p>
 
 <h2 style="text-align: center;">💻 Generating with Docker 💻</h2>
 <p>Instructions coming soon</p>
@@ -64,7 +64,7 @@
 <h2 style="text-align: center;">✍️ Project Status✍️ </h2>
 <p>The FaceCraft team is finished with the project. Check out each of our blogs if you'd like to read about our 5 months of work:</p>
 <ul>
-<li><a href="https://www.linkedin.com/in/williamhoover70/" target="_blank">Will's Blog</a></li>
-<li><a href="https://www.linkedin.com/in/temitayo-shorunke-a520991b5/" target="_blank">Temitayo's Blog</a></li>
+<li><a href="https://www.willhoover.dev/" target="_blank">Will's Blog</a></li>
+<li><a href="https://analyticalgeniuski.wixsite.com/temitayo-s-portfolio/blog" target="_blank">Temitayo's Blog</a></li>
 <li><a href="https://ethanstanks.github.io/capstone_blogs/capstone_blogs.html" target="_blank">Ethan's Blog</a></li>
 </ul>
