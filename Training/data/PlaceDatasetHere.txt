@@ -1,0 +1,2 @@
+Create a folder called "flickr"
+Inside the folder have the training images split up among subclass folder
