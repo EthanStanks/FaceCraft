@@ -1,0 +1,44 @@
+FROM nvcr.io/nvidia/pytorch:24.03-py3
+
+#RUN useradd -m -u 1000 user
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    tzdata \
+    libgtk2.0-dev \
+    pkg-config \
+    x11-apps \
+    libgl1-mesa-glx \
+    python3-tk \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV DEBIAN_FRONTEND=
+
+WORKDIR /app
+
+COPY . /app
+
+RUN pip uninstall -y opencv-python opencv-python-headless
+
+RUN rm -rf /usr/local/lib/python3.10/dist-packages/cv2/
+
+RUN pip install opencv-python-headless==4.8.1.78
+
+RUN mkdir /app/transformers_cache /app/torch_extensions && \
+    chmod -R 777 /app/transformers_cache /app/torch_extensions
+
+RUN pip install -r requirements.txt
+RUN pip install gradio
+
+RUN mkdir -p /usr/local/lib/python3.10/dist-packages/head_segmentation/model
+   
+EXPOSE 7860
+ENV PYTHONUNBUFFERED=1 \
+	GRADIO_ALLOW_FLAGGING=never \
+	GRADIO_NUM_PORTS=1 \
+	GRADIO_SERVER_NAME=0.0.0.0 \
+	SYSTEM=spaces
+
+CMD ["python", "App/app.py"]

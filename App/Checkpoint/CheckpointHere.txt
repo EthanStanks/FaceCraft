@@ -1,0 +1,2 @@
+Add the checkpoint inside this folder
+Download it here: https://huggingface.co/spaces/FaceCraft/FaceCraft/tree/main
