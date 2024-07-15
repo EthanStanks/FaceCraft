@@ -31,6 +31,7 @@
 <p>Open Visual Studio Code</p>
 <code>code .</code>
 <p>(Optional) Install Python Extension</p>
+<p>Install Remote Development Extension</p>
 <p>Attach Current Window to Container</p>
 <code>Click the "Attach in Current Window" arrow next to "facecraft-train:1.1"</code>
 <p>Navigate to the app directory</p>
