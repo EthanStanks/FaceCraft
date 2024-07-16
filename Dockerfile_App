@@ -31,6 +31,7 @@ RUN mkdir /app/transformers_cache /app/torch_extensions && \
 
 RUN pip install -r requirements.txt
 RUN pip install gradio
+RUN pip install open_clip_torch
 
 RUN mkdir -p /usr/local/lib/python3.10/dist-packages/head_segmentation/model
    

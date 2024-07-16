@@ -162,4 +162,9 @@ cython_debug/
 #.idea/
 
 Training/data/flickr
+App/Checkpoint/facecraft_256x256_1.pth
+App/Checkpoint/facecraft_256x256_40.pth
 App/Checkpoint/facecraft_256x256_80.pth
+App/Checkpoint/facecraft_256x256_86.pth
+App/Checkpoint/facecraft_256x256_120.pth
+App/Checkpoint/facecraft_256x256_140.pth

@@ -13,8 +13,8 @@ import pickle
 import time
 from PIL import Image
 
-
-
+import open_clip
+from torch.optim import Adam
 
 # Hyperparameters
 DATASET                 = "/app/Data/flickr/"
@@ -35,6 +35,11 @@ CHECKPOINT_PATH         = "/app/Python/output/256x256/epoch9/facecraft_256x256_9
 DATE                    = datetime.datetime.now().strftime("%Y-%m-%d")
 OUTPUT_FOLDER           = f"/app/Python/output/{RESOLUTION}/"
 
+CLIP_NAME = 'ViT-B-32'
+TOKENIZER = open_clip.get_tokenizer(CLIP_NAME)
+CLIP_MODEL, _, PREPROCESS = open_clip.create_model_and_transforms(CLIP_NAME, pretrained='openai')
+CLIP_MODEL.to(DEVICE)
+CLIP_MODEL.eval()
  
 # Get data loader
 def get_loader(): 
@@ -791,6 +796,79 @@ def generate_from_imgs(image,num_images, gen, mapping_network):
             images.append(image)
     gen.train()
     return images
+
+def get_clip_embedding(prompt):
+    tokens = TOKENIZER(prompt).to(DEVICE)
+    with torch.no_grad():
+        embedding = CLIP_MODEL.encode_text(tokens)
+    return embedding
+
+def create_noise(batch_size, log_resolution, device):
+    noise = []
+    resolution = 4
+
+    for i in range(log_resolution):
+        if i == 0:
+            n1 = None
+        else:
+            n1 = torch.randn(batch_size, 1, resolution, resolution, device=device)
+        n2 = torch.randn(batch_size, 1, resolution, resolution, device=device)
+
+        noise.append((n1, n2))
+        resolution *= 2
+
+    return noise
+
+def calculate_loss(img, clip_embedding):
+    img_pil = Image.fromarray((img.detach().permute(1, 2, 0).cpu().numpy() * 255).astype('uint8'))
+    img_tensor = PREPROCESS(img_pil).unsqueeze(0).to(DEVICE)
+    
+    img_features = CLIP_MODEL.encode_image(img_tensor)
+    
+    cos = nn.CosineSimilarity(dim=1, eps=1e-6)
+    loss = 1 - cos(img_features, clip_embedding)
+    return loss
+
+
+def optimize_latent_space(gen, mapping_network, text_prompt, num_steps=100, lr=LEARNING_RATE):
+    gen.eval()
+    clip_embedding = get_clip_embedding(text_prompt)
+
+    w = mapping_network(clip_embedding).unsqueeze(0).expand(LOG_RESOLUTION, -1, -1).clone().detach().requires_grad_(True)
+    optimizer = Adam([w], lr=lr)
+
+    best_img = None
+    best_loss = float('inf')
+
+    for _ in range(num_steps):
+        optimizer.zero_grad()
+        noise = create_noise(1, LOG_RESOLUTION, DEVICE)
+
+        img = gen(w, noise)
+        img = (img - img.min()) / (img.max() - img.min())
+
+        loss = calculate_loss(img.squeeze(), clip_embedding)
+        loss.backward()
+
+        optimizer.step()
+
+        if loss.item() < best_loss:
+            best_loss = loss.item()
+            best_img = img.clone().detach()
+            best_img = transforms.ToPILImage()(best_img.squeeze(0))
+
+    return best_img
+    
+    gen.train()
+
+def generate_prompt(prompt, num_images, gen, mapping_network):
+    images = []
+    for i in range(num_images):
+        img = optimize_latent_space(gen, mapping_network, prompt)
+        if img != None: images.append(img)
+    if len(images) < 1: print("Error finding images for prompts")
+    return images
+
 
 
 if __name__ == '__main__':
