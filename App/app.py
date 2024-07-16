@@ -71,4 +71,4 @@ with gr.Blocks(title="FaceCraft",css=css) as demo:
                 </footer>
             """)
 
-demo.launch(server_port=7861)
+demo.launch()
