@@ -1,4 +1,4 @@
-from main import setup, generate_imgs, generate_from_imgs, generate_prompt
+from main import setup, generate_imgs, generate_from_imgs, generate_prompt, get_manipulations
 from PIL import Image
 from filter_images import cartoonify, pencil, oil_painting, watercolor, black_and_white, sepia, blue_tone, xray_effect
 from watermark import create_watermark
@@ -91,6 +91,10 @@ def generate_random_images(num_images,resolution_dropdown,filter_checkbox, head_
 
 def generate_from_prompt(prompt, num_images_dropdown, resolution_dropdown, filter_checkbox, head_checkbox, gen, mapping_network):
     images = generate_prompt(prompt, num_images_dropdown, gen, mapping_network)
+    return perform_manipulations(images, resolution_dropdown,filter_checkbox, head_checkbox)
+
+def manipulate_imgs(scale, num_images_dropdown, resolution_dropdown, filter_checkbox, head_checkbox, gen):
+    images = get_manipulations(scale, num_images_dropdown, gen)
     return perform_manipulations(images, resolution_dropdown,filter_checkbox, head_checkbox)
 
     
