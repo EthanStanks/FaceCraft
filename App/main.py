@@ -40,6 +40,9 @@ TOKENIZER = open_clip.get_tokenizer(CLIP_NAME)
 CLIP_MODEL, _, PREPROCESS = open_clip.create_model_and_transforms(CLIP_NAME, pretrained='openai')
 CLIP_MODEL.to(DEVICE)
 CLIP_MODEL.eval()
+LATENT_MAPPER = nn.Linear(1, W_DIM).to(DEVICE)
+W = None
+NOISE = None
  
 # Get data loader
 def get_loader(): 
@@ -738,13 +741,14 @@ def setup(path):
     return gen, mapping_network
 
 def generate_imgs(number_imgs, gen, mapping_network):
+    global W, NOISE
     gen.eval()
     images = []
     for i in range(number_imgs):
         with torch.no_grad():
-            w = get_w(1, mapping_network)
-            noise = get_noise(1)
-            img = gen(w, noise)
+            W = get_w(1, mapping_network)
+            NOISE = get_noise(1)
+            img = gen(W, NOISE)
             img = img.cpu().squeeze(0)
             img = (img - img.min()) / (img.max() - img.min())
             image = transforms.ToPILImage()(img)
@@ -758,11 +762,12 @@ def convert_np_image_to_tensor(image_np):
     return torch.from_numpy(image_np).permute(2, 0, 1).float().div(127.5).sub(1)
 
 def get_w_from_img(z, mapping_network):
-    w = mapping_network(z)
-    return w[None, :, :].repeat(LOG_RESOLUTION, 1, 1)
+    global W, NOISE
+    W = mapping_network(z)
+    return W[None, :, :].repeat(LOG_RESOLUTION, 1, 1)
 
 def project_image_to_latent(gen, mapping_network, target_img_tensor, num_steps=1000, lr=0.01):
-    
+    global W, NOISE
     target_img_tensor = target_img_tensor.to(DEVICE).unsqueeze(0)  # Add batch dimension
     
     z = torch.randn(1, Z_DIM, device=DEVICE, requires_grad=True)
@@ -771,9 +776,9 @@ def project_image_to_latent(gen, mapping_network, target_img_tensor, num_steps=1
     for step in range(num_steps):
         optimizer.zero_grad()
         #w = get_w(1, mapping_network)
-        w = get_w_from_img(z, mapping_network)
-        noise = get_noise(1)
-        generated_img = gen(w, noise)
+        W = get_w_from_img(z, mapping_network)
+        NOISE = get_noise(1)
+        generated_img = gen(W, NOISE)
         loss = F.mse_loss(generated_img, target_img_tensor)
         loss.backward()
         optimizer.step()
@@ -781,15 +786,16 @@ def project_image_to_latent(gen, mapping_network, target_img_tensor, num_steps=1
     return z.detach()
 
 def generate_from_imgs(image,num_images, gen, mapping_network):
+    global W, NOISE
     target_img_tensor = convert_np_image_to_tensor(image)
     latent_z = project_image_to_latent(gen, mapping_network, target_img_tensor)
     gen.eval()
     images = []
     for i in range(num_images):
         with torch.no_grad():
-            w = get_w_from_img(latent_z, mapping_network)
-            noise = get_noise(1)
-            img = gen(w, noise)
+            W = get_w_from_img(latent_z, mapping_network)
+            NOISE = get_noise(1)
+            img = gen(W, NOISE)
             img = img.cpu().squeeze(0)
             img = (img - img.min()) / (img.max() - img.min())
             image = transforms.ToPILImage()(img)
@@ -831,20 +837,21 @@ def calculate_loss(img, clip_embedding):
 
 
 def optimize_latent_space(gen, mapping_network, text_prompt, num_steps=100, lr=LEARNING_RATE):
+    global W, NOISE
     gen.eval()
     clip_embedding = get_clip_embedding(text_prompt)
 
-    w = mapping_network(clip_embedding).unsqueeze(0).expand(LOG_RESOLUTION, -1, -1).clone().detach().requires_grad_(True)
-    optimizer = Adam([w], lr=lr)
+    W = mapping_network(clip_embedding).unsqueeze(0).expand(LOG_RESOLUTION, -1, -1).clone().detach().requires_grad_(True)
+    optimizer = Adam([W], lr=lr)
 
     best_img = None
     best_loss = float('inf')
 
     for _ in range(num_steps):
         optimizer.zero_grad()
-        noise = create_noise(1, LOG_RESOLUTION, DEVICE)
+        NOISE = create_noise(1, LOG_RESOLUTION, DEVICE)
 
-        img = gen(w, noise)
+        img = gen(W, NOISE)
         img = (img - img.min()) / (img.max() - img.min())
 
         loss = calculate_loss(img.squeeze(), clip_embedding)
@@ -858,8 +865,6 @@ def optimize_latent_space(gen, mapping_network, text_prompt, num_steps=100, lr=L
             best_img = transforms.ToPILImage()(best_img.squeeze(0))
 
     return best_img
-    
-    gen.train()
 
 def generate_prompt(prompt, num_images, gen, mapping_network):
     images = []
@@ -868,6 +873,26 @@ def generate_prompt(prompt, num_images, gen, mapping_network):
         if img != None: images.append(img)
     if len(images) < 1: print("Error finding images for prompts")
     return images
+
+def manipulate_imgs(number_imgs, gen,delta_w):
+    global W, NOISE
+    manipulated_w = W + delta_w
+    images = []
+    #number_imgs doesnt work because it saves only one latent space at a time so it would just be the same images over and over again
+    for i in range(1):
+        with torch.no_grad():
+            manipulated_img = gen(manipulated_w, NOISE)
+            manipulated_img = manipulated_img.cpu().squeeze(0)
+            manipulated_img = (manipulated_img - manipulated_img.min()) / (manipulated_img.max() - manipulated_img.min())
+            manipulated_img = transforms.ToPILImage()(manipulated_img)
+            images.append(manipulated_img)
+    return images
+
+def get_manipulations(scale, number_imgs, gen):
+    global W, NOISE
+    delta_w = LATENT_MAPPER(torch.tensor([scale], dtype=torch.float32, device=DEVICE)).unsqueeze(0).expand_as(W)
+    manipulated_imgs = manipulate_imgs(number_imgs, gen, delta_w)
+    return manipulated_imgs
 
 
 
